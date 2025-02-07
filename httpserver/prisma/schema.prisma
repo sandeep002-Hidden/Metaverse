@@ -1,0 +1,78 @@
+datasource db {
+   provider = "mongodb"
+   url      = env("DATABASE_URL")
+}
+
+generator client {
+   provider = "prisma-client-js"
+}
+
+model User {
+   id             String    @id @default(auto()) @map("_id") @db.ObjectId
+   ProfilePicture String?
+   FirstName      String
+   LastName       String
+   Email          String    @unique
+   UserName       String    @unique
+   Password       String
+   RefreshToken   String?
+   Otp            Int?
+   OtpExpire      DateTime?
+   createdAt      DateTime  @default(now())
+   updatedAt      DateTime  @updatedAt
+   Shapes         Shape[]
+}
+
+model Shape {
+   id              String          @id @default(auto()) @map("_id") @db.ObjectId
+   ShapeName       String
+   Creator         User            @relation(fields: [CreatorId], references: [id])
+   CreatorId       String          @db.ObjectId
+   AccessSpecifier AccessSpecifier @default(PUBLIC)
+   Category        String[]
+   CanvasObjects   CanvasObject[]
+   createdAt       DateTime        @default(now())
+   updatedAt       DateTime        @updatedAt
+}
+
+type CanvasObject {
+   id         String
+   files      File?
+   properties Properties
+}
+
+type File {
+   filename String
+   url      String
+}
+
+type Properties {
+   type        ShapeType
+   left        Float
+   top         Float
+   width       Float
+   height      Float
+   radius      Float?
+   fill        Json?
+   stroke      String?
+   strokeWidth Float     @default(1)
+   scaleX      Float     @default(1)
+   scaleY      Float     @default(1)
+   angle       Float     @default(0)
+   path        String[]
+}
+
+enum AccessSpecifier {
+   PRIVATE
+   PUBLIC
+}
+
+enum ShapeType {
+   RECT
+   CIRCLE
+   TRIANGLE
+   TEXTBOX
+   LINE
+   PATH
+   GROUP
+}
