@@ -92,7 +92,7 @@ export default function CreateAssets() {
               className="text-sm font-medium mb-1 text-black dark:text-white"
             >
               Asset Status
-            </label>
+            </label>//
             <select
               id="assetStatus"
               value={AssetDetails.AssetStatus}
