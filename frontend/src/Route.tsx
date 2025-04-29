@@ -35,7 +35,7 @@ export const router = createBrowserRouter(
         <Route path="maps" element={<Maps />} />// all the maps are visible
         <Route path="customersupport" element={<CustomerSupport />} />
         <Route path="user">
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile/:id" element={<Profile />} />
           <Route path="createassets">
             <Route path="" element={<CreateAssets/>}/>
             <Route path=":assetname" element={<AssetFabric/>}/>
@@ -46,8 +46,8 @@ export const router = createBrowserRouter(
 
           </Route>
           <Route path=":userId">
-            <Route path="mymaps" element={<MyMaps />} />      //my maps are visible
-            <Route path="myassets" element={<MyAssets />} />  //my assets are visible
+            <Route path="maps" element={<MyMaps />} />      //my maps are visible
+            <Route path="assets" element={<MyAssets />} />  //my assets are visible
           </Route>
 
         </Route>

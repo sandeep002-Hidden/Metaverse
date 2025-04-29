@@ -58,7 +58,7 @@ export default async function registerUser(req, res) {
     console.log(profilePic)
     if (profilePic) {
       profilePicturePath = await uploadOnCloudinary(profilePic);
-      console.log(profilePicturePath)
+      // console.log(profilePicturePath)
     }
     const user = await prisma.user.create({
       data: {

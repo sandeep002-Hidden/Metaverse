@@ -3,9 +3,17 @@
   "version": "1.0.0",
   "description": "This is the WebRtc server for the Nexora web App for vedio commmunication while playing the game and so on..",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
   },
   "author": "Sandeep Mohapatra",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10",
+    "socket.io": "^4.8.1"
+  }
 }

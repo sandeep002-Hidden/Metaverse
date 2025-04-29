@@ -28,7 +28,11 @@ export default function Signup() {
   const [isDisable, setIsDisable] = useState<boolean>(true);
   const [seePassword, setSeePassword] = useState<boolean>(false);
 
+<<<<<<< HEAD
   const [message, setMessage] = useState({
+=======
+  const [_, setMessage] = useState({
+>>>>>>> 4d81fdd (Saving progress before branch change)
     Message: "",
     isGood: false,
   });

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+  httpserver:
+    build:
+      context: ./httpserver
+    ports:
+      - "3000:3000"
+  
+  web_rtc_server:
+    build:
+      context: ./web_rtc_server
+    ports:
+      - "8080:8080"
+  
+  ws_server:
+    build:
+      context: ./ws_server
+    ports:
+      - "4000:4000"

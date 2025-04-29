@@ -1,7 +1,11 @@
 import React, { createContext, useState, useContext } from "react";
 
 interface User {
+<<<<<<< HEAD
   _id?: string;
+=======
+  id?: string;
+>>>>>>> 4d81fdd (Saving progress before branch change)
   UserName?: string;
   FirstName?: string;
   LastName?: string;

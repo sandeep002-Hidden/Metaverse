@@ -2,7 +2,7 @@ import prisma from "../../prisma/prisma.js";
 import sendEmail from "../../utills/NodeMailer.js";
 export default async function forgotPasswordEmail(req, res) {
   try {
-    console.log(req.body)
+    // console.log(req.body)
     const { emailOrUserName } = req.body;
     const user = await prisma.user.findFirst({
       where: {

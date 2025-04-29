@@ -2,18 +2,9 @@ import prisma from "../../prisma/prisma.js";
 import jwt from "jsonwebtoken";
 export default async function logout(req, res) {
   try {
-    const accessToken = req.cookies.NexoraAccessToken;
-    // console.log(req.cookies)
-    const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
-    // console.log(decoded)
-    if (!decoded) {
-      return res.status(403).json({
-        message: "something went wrong, try again after sometime",
-        success: flase,
-      });
-    }
-    // console.log(decoded)
-    const userId = decoded.id;
+    // console.log("req",req)
+    const userId = req.user;
+    // console.log("userId",userId)
     const updateStatus = await prisma.user.update({
       where: { id: userId },
       data: { RefreshToken: "" },

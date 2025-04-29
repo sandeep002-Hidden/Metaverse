@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from "react";
+=======
+import { useState, useEffect } from "react";
+>>>>>>> 4d81fdd (Saving progress before branch change)
 import { Sun, Moon } from "lucide-react";
 
 const ThemeSwitcher = (isAuth: { isAuth: boolean }) => {
@@ -32,11 +36,18 @@ const ThemeSwitcher = (isAuth: { isAuth: boolean }) => {
   };
 
   return (
+<<<<<<< HEAD
     <div className=" relative z-20 ">
       <button
         onClick={toggleTheme}
         className={`p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors ${
           !isAuth && "absolute right-10 top-10"
+=======
+      <button
+        onClick={toggleTheme}
+        className={`p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors ${
+          !isAuth && "absolute left-10 top-30"
+>>>>>>> 4d81fdd (Saving progress before branch change)
         }`}
         aria-label="Toggle theme"
       >
@@ -46,7 +57,10 @@ const ThemeSwitcher = (isAuth: { isAuth: boolean }) => {
           <Sun className="w-5 h-5 text-gray-800 dark:text-gray-200" />
         )}
       </button>
+<<<<<<< HEAD
     </div>
+=======
+>>>>>>> 4d81fdd (Saving progress before branch change)
   );
 };
 

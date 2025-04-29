@@ -1,23 +1,24 @@
 import jwt from "jsonwebtoken";
 import prisma from "../../prisma/prisma.js";
+
 const getuserdetails = async (req, res) => {
   try {
-    const accessToken = req.cookies.NexoraAccessToken;
-    // console.log(accessToken)
-    const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
-    if (!decoded) {
-      return res.status(403).json({
-        message: "something went wrong, try again after sometime",
-        success: flase,
-      });
+    const userId = req.user;
+    // console.log("User ID from request:", userId);
+    // console.log("Access token from request:", req.accessToken ? "Present" : "Not present");
+    // console.log("Refresh token from request:", req.refreshToken ? "Present" : "Not present");
+    
+    if (!userId) {
+      // console.log("User ID not found in request");
+      return res.status(401).json({ message: "User not found", success: false });
     }
-    // console.log(decoded);
-    const userId = decoded.id;
+    
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    // console.log(user);
     if (!user) {
-      return res.status(401).json({ message: "User Found", success: false });
+      // console.log("User not found in database");
+      return res.status(401).json({ message: "User not found", success: false });
     }
+    
     const sendUser = {
       id: user.id,
       profilePic: user.ProfilePicture,
@@ -26,12 +27,39 @@ const getuserdetails = async (req, res) => {
       Email: user.Email,
       UserName: user.UserName,
     };
-    res
-      .status(200)
-      .json({ message: "get user details", success: true, user: sendUser });
+    
+    // Set new cookies if tokens were refreshed
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: req.accessToken ? 3600000 : undefined // 1 hour for access token
+    };
+    
+    const refreshCookieOptions = {
+      ...cookieOptions,
+      maxAge: req.refreshToken ? 7 * 24 * 3600000 : undefined // 7 days for refresh token
+    };
+    
+    if (req.accessToken) {
+      res.cookie("NexoraAccessToken", req.accessToken, cookieOptions);
+      // console.log("New access token cookie set");
+    }
+    
+    if (req.refreshToken) {
+      res.cookie("NexoraRefreshToken", req.refreshToken, refreshCookieOptions);
+      // console.log("New refresh token cookie set");
+    }
+    
+    const response = {
+      message: "User details retrieved successfully",
+      success: true,
+      user: sendUser
+    };
+    return res.status(200).json(response);
   } catch (error) {
-    console.log(error)
+    console.log("Error in getUserDetails:", error);
     return res.status(500).json({ message: error.message, success: false });
   }
 };
+
 export { getuserdetails };

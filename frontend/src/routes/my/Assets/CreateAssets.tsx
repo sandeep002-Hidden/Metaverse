@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useEffect, useState } from "react";
+=======
+import  { useEffect, useState } from "react";
+>>>>>>> 4d81fdd (Saving progress before branch change)
 import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router";
 interface AssetDetails {
@@ -92,7 +96,11 @@ export default function CreateAssets() {
               className="text-sm font-medium mb-1 text-black dark:text-white"
             >
               Asset Status
+<<<<<<< HEAD
             </label>//
+=======
+            </label>
+>>>>>>> 4d81fdd (Saving progress before branch change)
             <select
               id="assetStatus"
               value={AssetDetails.AssetStatus}

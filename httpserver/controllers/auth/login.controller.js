@@ -5,7 +5,7 @@ import { generateAccessAndRefreshToken } from "../../utills/generateToken.js";
 export default async function loginUser(req, res) {
   try {
     const { cred, password } = req.body;
-    console.log(cred)
+    // console.log(cred)
     if (!cred || !password) {
       return res.status(400).json({
         message: "Email/Username and password are required.",
@@ -24,6 +24,7 @@ export default async function loginUser(req, res) {
         success: false,
       });
     }
+    // console.log(existingUser)
     const isValidUserPassword = await bcrypt.compare(
       password,
       existingUser.Password

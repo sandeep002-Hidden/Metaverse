@@ -6,6 +6,7 @@ import AuthRouter from "../route/auth.router.js"
 import prisma from "../prisma/prisma.js";
 import UserRouter from "../route/user.router.js"
 import authMiddleWare from "../middlewares/authMiddleWare.js"
+import AssetRouter from "../route/asset.router.js"
 const app = express();
 
 
@@ -20,7 +21,8 @@ app.use(express.json());
 app.use(cookieParser())
 
 app.use("/api/v1/users/auth",AuthRouter)
-app.use("/api/v1/users",authMiddleWare,UserRouter)
+app.use("/api/v1/users",UserRouter)
+app.use("/api/v1/users/assets",AssetRouter)
 process.on("beforeExit", async () => {
   await prisma.$disconnect();
 });

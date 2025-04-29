@@ -28,8 +28,10 @@ const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      success: false;
-      message: "No user Exists";
+      return {
+        success: false,
+        message: "No user Exists",
+      };
     }
     const accessToken = await generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
@@ -45,6 +47,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 
 const refreshAccessToken = async (oldRefreshToken) => {
   try {
+    // console.log(oldRefreshToken)
     if (!oldRefreshToken) {
       console.log("No refresh token provided");
       return {
@@ -56,7 +59,7 @@ const refreshAccessToken = async (oldRefreshToken) => {
       oldRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
-    console.log(decodedToken);
+    // console.log(decodedToken);
     const user = await prisma.user.findUnique({
       where: { id: decodedToken.id },
       select: {
@@ -64,6 +67,7 @@ const refreshAccessToken = async (oldRefreshToken) => {
         RefreshToken: true,
       },
     });
+    console.log("no user")
     if (!user) {
       return {
         success: false,
@@ -72,7 +76,7 @@ const refreshAccessToken = async (oldRefreshToken) => {
     }
 
     if (oldRefreshToken !== user.RefreshToken) {
-      // console.log('Token mismatch for user:', decodedToken.id);
+      console.log('Token mismatch for user',);
       return {
         success: false,
         message: "Invalid refresh token",
@@ -82,15 +86,12 @@ const refreshAccessToken = async (oldRefreshToken) => {
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
       user.id
     );
-
-    console.log("jeje")
     if (!accessToken || !refreshToken) {
       return {
         success: false,
         message: "Error generating new tokens",
       };
     }
-    // console.log(accessToken)
     return {
       accessToken,
       refreshToken,
