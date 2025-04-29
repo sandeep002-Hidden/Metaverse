@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import React from "react";
-=======
-
->>>>>>> 4d81fdd (Saving progress before branch change)
 
 const LoadingSpinner = ({
   size = "md",

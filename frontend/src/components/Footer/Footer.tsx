@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-import React from 'react'
-
-export default function Footer() {
-  return (
-    <div>
-      Footer
-    </div>
-=======
 import { Github, Globe2, Heart, Linkedin, Twitter } from 'lucide-react'
 
 export default function Footer() {
@@ -82,6 +73,5 @@ export default function Footer() {
           </div>
         </div>
       </footer>
->>>>>>> 4d81fdd (Saving progress before branch change)
   )
 }

@@ -1,11 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-<<<<<<< HEAD
-import {Helmet} from "react-helmet"
-=======
 import { Helmet } from "react-helmet";
->>>>>>> 4d81fdd (Saving progress before branch change)
 export default function Login() {
   const navigate = useNavigate();
   const [user, setUser] = useState({
@@ -53,11 +49,7 @@ export default function Login() {
       navigate("/home");
       setMessage({ ...message, Message: response.data.message, isGood: true });
     } catch (error) {
-<<<<<<< HEAD
-      const err = error as AxiosError;
-=======
       const err: any = error as AxiosError;
->>>>>>> 4d81fdd (Saving progress before branch change)
       const errorMessage = err.response?.data?.message! || "An error occurred";
       setMessage({ ...message, Message: errorMessage, isGood: false });
     } finally {
@@ -66,16 +58,10 @@ export default function Login() {
   };
   return (
     <>
-<<<<<<< HEAD
-    <Helmet>
-      <title>Login to Nexora</title>
-    </Helmet>
-=======
       <Helmet>
         <title>Login to Nexora</title>
       </Helmet>
       <div></div>
->>>>>>> 4d81fdd (Saving progress before branch change)
       <div className="bg-gray-100 dark:bg-gray-950 h-screen flex justify-center items-center relative z-10 top-0">
         <div
           style={{ height: "50vh" }}

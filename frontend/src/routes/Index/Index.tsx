@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import React from 'react'
-
-export default function Index() {
-  return (
-    <div>
-      Index page
-    </div>
-  )
-}
-=======
 import { useState, useEffect } from 'react';
 import { Users, Globe2, Gamepad2, Building2, ArrowRight, Share2, Sparkles, UserPlus, LogIn, Moon, Sun } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -233,4 +222,3 @@ export default function Index() {
     </div>
   );
 }
->>>>>>> 4d81fdd (Saving progress before branch change)

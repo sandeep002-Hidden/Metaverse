@@ -54,11 +54,7 @@ export default function ForgetPassword() {
           });
         }
       } catch (error) {
-<<<<<<< HEAD
-        const err = error as AxiosError;
-=======
         const err:any = error as AxiosError;
->>>>>>> 4d81fdd (Saving progress before branch change)
         const errorMessage = err.response?.data?.message || "An error occurred";
         setMessage({ ...message, Message: errorMessage, isGood: false });
       } finally {
@@ -79,11 +75,7 @@ export default function ForgetPassword() {
           setMessage({ ...message, Message: res.data.message, isGood: false });
         }
       } catch (error) {
-<<<<<<< HEAD
-        const err = error as AxiosError;
-=======
         const err:any = error as AxiosError;
->>>>>>> 4d81fdd (Saving progress before branch change)
         const errorMessage = err.response?.data?.message || "An error occurred";
         setMessage({ ...message, Message: errorMessage, isGood: false });
       } finally {
@@ -110,11 +102,7 @@ export default function ForgetPassword() {
           setMessage({ ...message, Message: res.data.message, isGood: false });
         }
       } catch (error) {
-<<<<<<< HEAD
-        const err = error as AxiosError;
-=======
         const err:any = error as AxiosError;
->>>>>>> 4d81fdd (Saving progress before branch change)
         const errorMessage = err.response?.data?.message || "An error occurred";
         setMessage({ ...message, Message: errorMessage, isGood: false });
       } finally {
