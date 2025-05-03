@@ -5,7 +5,8 @@ export default async function middleware(req, res, next) {
   try {
     const accessToken = req.cookies.NexoraAccessToken;
     const refreshToken = req.cookies.NexoraRefreshToken;
-    
+    // console.log("accesstoken",accessToken)
+    // console.log("refreshtoken",refreshToken)
     // No tokens provided
     if (!accessToken && !refreshToken) {
       return res.status(401).json({

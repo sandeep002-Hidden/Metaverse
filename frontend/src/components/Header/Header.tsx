@@ -166,17 +166,17 @@ export default function Header() {
                 {
                   label: "Profile",
                   icon: <FaUser />,
-                  route: `/home/user/profile/${user?._id}`,
+                  route: `/home/user/profile/${user?.id}`,
                 },
                 {
                   label: "My Maps",
                   icon: <RiRoadMapFill />,
-                  route: `/home/user/${user?._id}/maps`,
+                  route: `/home/user/${user?.id}/maps`,
                 },
                 {
                   label: "My Assets",
                   icon: <LuCassetteTape />,
-                  route: `/home/user/${user?._id}/Assets`,
+                  route: `/home/user/${user?.id}/assets`,
                 },
                 {
                   label: "Create Maps",

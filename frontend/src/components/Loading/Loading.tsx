@@ -1,11 +1,19 @@
+import { ReactNode } from 'react';
+
+interface LoadingSpinnerProps {
+  size?: "sm" | "md" | "lg" | "xl";
+  color?: "blue" | "red" | "green" | "purple" | "gray";
+}
+
+interface LoadingOverlayProps {
+  children: ReactNode;
+  isLoading: boolean;
+}
 
 const LoadingSpinner = ({
   size = "md",
   color = "blue",
-}: {
-  size?: "sm" | "md" | "lg" | "xl";
-  color?: "blue" | "red" | "green" | "purple" | "gray";
-}) => {
+}: LoadingSpinnerProps) => {
   // Tailwind size classes mapping
   const sizeClasses = {
     sm: "w-6 h-6",
@@ -36,28 +44,30 @@ const LoadingSpinner = ({
 
 const LoadingPage = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div 
+      className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900" 
+      role="status"
+      aria-label="Loading page content"
+    >
       <div className="flex flex-col items-center gap-4">
         <LoadingSpinner size="xl" color="blue" />
-        <p className="text-lg font-medium text-gray-600">Loading...</p>
+        <p className="text-lg font-medium text-gray-600 dark:text-gray-300">Loading...</p>
       </div>
     </div>
   );
 };
 
-const LoadingOverlay = ({
-  children,
-  isLoading,
-}: {
-  children: any;
-  isLoading: any;
-}) => {
+const LoadingOverlay = ({ children, isLoading }: LoadingOverlayProps) => {
   if (!isLoading) return children;
 
   return (
     <div className="relative">
       {children}
-      <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+      <div 
+        className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80"
+        role="status"
+        aria-label="Loading content"
+      >
         <LoadingSpinner size="lg" color="blue" />
       </div>
     </div>
@@ -65,5 +75,4 @@ const LoadingOverlay = ({
 };
 
 export { LoadingSpinner, LoadingPage, LoadingOverlay };
-
 export default LoadingSpinner;

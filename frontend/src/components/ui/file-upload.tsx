@@ -20,12 +20,37 @@ export const FileUpload = ({
   onChange?: (file: File | null) => void;
 }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validateFile = (file: File) => {
+    // Only allow images < 5MB
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
+    if (!validTypes.includes(file.type)) {
+      return 'Please upload an image file (JPEG, PNG, GIF, WEBP)';
+    }
+    if (file.size > maxSize) {
+      return 'File size should be less than 5MB';
+    }
+    return null;
+  };
 
   const handleFileChange = (newFiles: File[]) => {
     const newFile = newFiles[0];
-    setFile(newFile);
-    onChange?.(newFile);
+    if (newFile) {
+      const errorMsg = validateFile(newFile);
+      if (errorMsg) {
+        setError(errorMsg);
+        setFile(null);
+        onChange?.(null);
+        return;
+      }
+      setError(null);
+      setFile(newFile);
+      onChange?.(newFile);
+    }
   };
 
   const handleClick = () => {
@@ -60,6 +85,15 @@ export const FileUpload = ({
         </div>
 
         <div className="relative flex-1 max-w-xl">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-red-500 text-sm mb-2"
+            >
+              {error}
+            </motion.div>
+          )}
           {file ? (
             <motion.div
               layoutId="file-upload"

@@ -9,7 +9,7 @@ import getAllAssets from "../controllers/asset/getAllAssets.js"
 import authMiddleWare from "../middlewares/authMiddleWare.js"
 const router = Router();
 
-router.route("/createasset").post(authMiddleWare,createAsset)
+router.route("/createAssets").post(authMiddleWare,createAsset)
 router.route("/getUserAssets/:userId").get(authMiddleWare,getUserAssets)
 router.route("/getAssetById/:assetId").get(authMiddleWare,getAssetById)
 router.route("/updateAsset/:assetId").put(authMiddleWare,updateAsset)

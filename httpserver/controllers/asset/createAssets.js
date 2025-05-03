@@ -1,20 +1,27 @@
+import prisma from "../../prisma/prisma.js"
+import replaceTokens from "../auth/replaceTokens.js";
 export default async function createAsset(req,res){
     try {
-        const {AssetName,AssetStatus,AssetCategory} = req.body;
-        const asset = await prisma.asset.create({
+        const {shapeName,shapeStatus,properties,shapeCategory} = req.body;
+        const user=req.user
+        console.log(properties)
+        const asset = await prisma.shape.create({
             data:{
-                AssetName,
-                AssetStatus,
-                AssetCategory
+                ShapeName:shapeName,
+                CreatorId:user,
+                AccessSpecifier:shapeStatus==="Public"?"PUBLIC":"PRIVATE",
+                Category:shapeCategory,
+                Properties:JSON.parse(properties)
             }
         })
-        return res.status(200).json({
+        const updatedRes=replaceTokens(req,res)
+        return updatedRes.status(200).json({
             message:"Asset created successfully",
             success:true,
-            id:asset.id
+            _id:asset.id
         })
-
     } catch (error) {
+        console.log(error.message)
         return res.status(500).json({
             message:"Internal server error",
             success:false,

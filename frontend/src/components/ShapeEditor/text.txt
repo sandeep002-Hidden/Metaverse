@@ -1,22 +1,34 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as fabric from "fabric";
+import { AssetInfoForm } from "./AssetInfoForm";
+import { EditorToolbar } from "./EditorToolbar";
+import { EditorControls } from "./EditorControls";
+import { Button } from "../ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"; // Fixed dialog imports
+import { AlertTriangle, FileImage, Palette } from "lucide-react";
+import { PropertiesPanel } from "./PropertiesPanel";
+import { cn } from "@/lib/utils";
 
 interface ShadowOptions {
   color: string;
   blur: number;
-  offsetX: number;
-  offsetY: number;
+  offsetx: number;
+  offsety: number;
 }
+
 interface ShapeInfo {
-  ShapeName: string;
-  AccessSpecifier: string;
-  width: number;
-  height: number;
-  CoverImage: File | null;
-  imageUrl?: string;
-  publicId?: string;
-  designData?: string;
+  AssetName: string;
+  AssetStatus: string;
+  AssetCategory: string[];
 }
+
 export interface CanvasObject {
   id: string;
   files?: File[];
@@ -41,14 +53,17 @@ export interface CanvasObject {
     path?: string;
     text?: string;
     fontSize?: number;
+    fontFamily?: string;
+    fontWeight?: string;
     scaleX?: number;
     scaleY?: number;
     angle?: number;
+    opacity?: number;
     shadow?: {
       color: string;
       blur: number;
-      offsetX: number;
-      offsetY: number;
+      offsetx: number;
+      offsety: number;
     };
   };
 }
@@ -58,89 +73,86 @@ const ShapeEditor: React.FC = () => {
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const [selectedTool, setSelectedTool] = useState("select");
   const [selectedColor, setSelectedColor] = useState("#000000");
+  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [strokeWidth, setStrokeWidth] = useState(1);
   const [brushWidth, setBrushWidth] = useState(5);
   const [selectedShape, setSelectedShape] = useState<fabric.Object | null>(
     null
   );
+  const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
+
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [canvasObjects, setCanvasObjects] = useState<CanvasObject[]>([]);
   const [shadowEnabled, setShadowEnabled] = useState(false);
   const [shadowOptions, setShadowOptions] = useState<ShadowOptions>({
     color: "#000000",
     blur: 10,
-    offsetX: 5,
-    offsetY: 5,
+    offsetx: 5,
+    offsety: 5,
   });
   const [shapeInfo, setShapeInfo] = useState<ShapeInfo>({
-    ShapeName: "",
-    AccessSpecifier: "",
-    width: 50,
-    height: 50,
-    CoverImage: null,
+    AssetName: "",
+    AssetStatus: "",
+    AssetCategory: [],
   });
+  const [opacity, setOpacity] = useState(100);
+  const [fontSize, setFontSize] = useState(20);
+  const [fontFamily, setFontFamily] = useState("Arial");
+  const [fontWeight, setFontWeight] = useState("normal");
+  const [showGrid, setShowGrid] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [canvasHistory, setCanvasHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [showConfirmClearDialog, setShowConfirmClearDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+
+  // Available font families
+  const fontFamilies = [
+    "Arial",
+    "Helvetica",
+    "Times New Roman",
+    "Courier New",
+    "Georgia",
+    "Verdana",
+    "Comic Sans MS",
+    "Impact",
+  ];
+
+  const fontWeights = ["normal", "bold", "300", "500", "700", "900"];
+
+  useEffect(() => {
+    const assetDetails = localStorage.getItem("AssetDetails");
+    if (assetDetails) {
+      setShapeInfo(JSON.parse(assetDetails));
+    }
+  }, []);
+
   interface ApiResponse {
     success: boolean;
     message: string;
     imageUrl?: string;
     publicId?: string;
   }
+
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const handleDesignSave = async (canvasObjects: any[]) => {
-    if (!canvasObjects.length) return;
-    console.log(canvasObjects);
-    try {
-      setIsUploading(true);
-      setError(null);
 
-      const formData = new FormData();
-
-      // Extract files from canvasObjects
-      const allFiles: File[] = canvasObjects.flatMap((obj) => obj.files || []);
-
-      // Append files to FormData
-      allFiles.forEach((file, index) => {
-        formData.append(`file_${index}`, file);
-      });
-
-      // Append additional data to FormData
-      formData.append("ShapeName", shapeInfo.ShapeName);
-      formData.append("AccessSpecifier", shapeInfo.AccessSpecifier);
-      formData.append("CanvasObject", JSON.stringify(canvasObjects));
-      formData.append("FileCount", allFiles.length.toString());
-
-      const uploadResponse = await fetch("/api/v1/users/createshape", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`HTTP error! status: ${uploadResponse.status}`);
-      }
-
-      const data: ApiResponse = await uploadResponse.json();
-      if (data.success) {
-        alert("Design saved successfully!");
-      } else {
-        throw new Error(data.message || "Save failed");
-      }
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  // Initialize canvas and event handlers
   useEffect(() => {
     if (canvasRef.current) {
       const canvas = new fabric.Canvas(canvasRef.current, {
-        width: window.innerWidth > 800 ? 800 : window.innerWidth - 40,
+        width: window.innerWidth > 800 ? 1200 : window.innerWidth - 40,
         height: 600,
         backgroundColor: "#ffffff",
         isDrawingMode: false,
       });
 
+      // Set up grid
+      createGrid(canvas);
+
       const handleResize = () => {
-        const width = window.innerWidth > 800 ? 800 : window.innerWidth - 40;
+        const width = window.innerWidth > 800 ? 1200 : window.innerWidth - 40;
         canvas.setWidth(width);
         canvas.renderAll();
       };
@@ -148,21 +160,67 @@ const ShapeEditor: React.FC = () => {
       window.addEventListener("resize", handleResize);
 
       fabricRef.current = canvas;
-      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = selectedColor;
-      canvas.freeDrawingBrush.width = brushWidth;
+      
+      // Initialize the pencil brush
+      if (canvas.freeDrawingBrush instanceof fabric.PencilBrush) {
+        canvas.freeDrawingBrush.color = selectedColor;
+        canvas.freeDrawingBrush.width = brushWidth;
+      }
 
+      // Event handlers for selection
       canvas.on("selection:created", (e) => {
-        setSelectedShape(e.selected?.[0] || null);
+        const selected = e.selected?.[0];
+        setSelectedShape(selected || null);
+        updateControlsFromSelectedObject(selected);
+      });
+
+      canvas.on("selection:updated", (e) => {
+        const selected = e.selected?.[0];
+        setSelectedShape(selected || null);
+        updateControlsFromSelectedObject(selected);
       });
 
       canvas.on("selection:cleared", () => {
         setSelectedShape(null);
+        resetControls();
       });
 
-      canvas.on("object:modified", updateCanvasState);
-      canvas.on("object:added", updateCanvasState);
-      canvas.on("object:removed", updateCanvasState);
+      // Make object editable after being added to canvas
+      canvas.on("object:added", (e) => {
+        const obj = e.target;
+        if (obj) {
+          obj.set({
+            hasControls: true,
+            hasBorders: true,
+            selectable: true,
+          });
+
+          // Special settings for text objects
+          if (obj.type === "i-text" || obj.type === "text") {
+            (obj as fabric.IText).set({
+              editable: true,
+            });
+          }
+
+          canvas.renderAll();
+          addToHistory();
+        }
+      });
+
+      // Update canvas state after modifications
+      canvas.on("object:modified", () => {
+        updateCanvasState();
+        addToHistory();
+      });
+
+      canvas.on("path:created", () => {
+        addToHistory();
+      });
+
+      // Add initial state to history
+      setTimeout(() => {
+        addToHistory();
+      }, 100);
 
       return () => {
         window.removeEventListener("resize", handleResize);
@@ -170,16 +228,377 @@ const ShapeEditor: React.FC = () => {
       };
     }
   }, []);
+  
+  // Add event listener for keyboard events
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedShape]); // Add dependency on selectedShape
 
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!fabricRef.current) return;
+
+      if (e.key === "Delete" && selectedShape) {
+        e.preventDefault();
+        deleteSelectedObject();
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key.toLowerCase() === "c" &&
+        selectedShape
+      ) {
+        e.preventDefault();
+        copySelectedObject();
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        pasteObject();
+      }
+    },
+    [selectedShape]
+  );
+
+  // Reset controls to default when no object is selected
+  const resetControls = () => {
+    setStrokeWidth(1);
+    setOpacity(100);
+    setFontSize(20);
+    setFontFamily("Arial");
+    setFontWeight("normal");
+    setShadowEnabled(false);
+  };
+
+  // Update controls UI with the selected object's properties
+  const updateControlsFromSelectedObject = useCallback(
+    (obj: fabric.Object | undefined) => {
+      if (!obj) return;
+
+      const fill = obj.fill;
+      if (typeof fill === "string") {
+        setSelectedColor(fill || "#000000");
+      }
+      setStrokeColor((obj.stroke as string) || "#000000");
+      setStrokeWidth(obj.strokeWidth || 1);
+      setOpacity(
+        typeof obj.opacity === "number" ? Math.round(obj.opacity * 100) : 100
+      );
+
+      if (obj.type === "i-text" || obj.type === "text") {
+        const textObj = obj as fabric.IText;
+        setFontSize(
+          typeof textObj.fontSize === "number" ? textObj.fontSize : 20
+        );
+        setFontFamily(textObj.fontFamily || "Arial");
+        setFontWeight(textObj.fontWeight?.toString() || "normal");
+      }
+
+      if (obj.shadow) {
+        setShadowEnabled(true);
+        setShadowOptions({
+          color: obj.shadow.color || "#000000",
+          blur: obj.shadow.blur || 10,
+          offsetx: obj.shadow.offsetX || 5,
+          offsety: obj.shadow.offsetY || 5,
+        });
+      } else {
+        setShadowEnabled(false);
+      }
+    },
+    []
+  );
+
+  // Create grid background
+  const createGrid = useCallback(
+    (canvas: fabric.Canvas) => {
+      if (!canvas) return;
+
+      // Clear existing grid
+      const objects = canvas.getObjects();
+      objects.forEach((obj) => {
+        if (obj.data?.isGrid) {
+          canvas.remove(obj);
+        }
+      });
+
+      if (!showGrid) {
+        canvas.renderAll();
+        return;
+      }
+
+      const gridSize = 20;
+      const canvasWidth = canvas.width || 1200;
+      const canvasHeight = canvas.height || 600;
+
+      try {
+        // Create grid lines
+        for (let i = 0; i <= canvasWidth / gridSize; i++) {
+          const lineX = new fabric.Line(
+            [i * gridSize, 0, i * gridSize, canvasHeight],
+            {
+              stroke: "#ddd",
+              selectable: false,
+              evented: false,
+              strokeWidth: 1,
+            }
+          );
+
+          lineX.set("data", { isGrid: true });
+          canvas.add(lineX);
+          canvas.sendToBack(lineX);
+        }
+
+        for (let i = 0; i <= canvasHeight / gridSize; i++) {
+          const lineY = new fabric.Line(
+            [0, i * gridSize, canvasWidth, i * gridSize],
+            {
+              stroke: "#ddd",
+              selectable: false,
+              evented: false,
+              strokeWidth: 1,
+            }
+          );
+
+          lineY.set("data", { isGrid: true });
+          canvas.add(lineY);
+          canvas.sendToBack(lineY);
+        }
+
+        canvas.renderAll();
+      } catch (error) {
+        console.error("Error creating grid:", error);
+      }
+    },
+    [showGrid]
+  );
+
+  // Update grid when showGrid changes
+  useEffect(() => {
+    if (fabricRef.current) {
+      createGrid(fabricRef.current);
+    }
+  }, [showGrid, createGrid]);
+
+  // Apply zoom level to canvas
+  useEffect(() => {
+    if (fabricRef.current) {
+      const zoomFactor = zoomLevel / 100;
+      fabricRef.current.setZoom(zoomFactor);
+      fabricRef.current.renderAll();
+    }
+  }, [zoomLevel]);
+
+  // Add current canvas state to history
+  const addToHistory = () => {
+    if (!fabricRef.current) return;
+
+    const json = JSON.stringify(fabricRef.current.toJSON(["data"]));
+
+    // Don't add if it's the same as the last entry
+    if (canvasHistory.length > 0 && canvasHistory[historyIndex] === json) {
+      return;
+    }
+
+    // If we're not at the end of the history, remove everything after current point
+    const newHistory =
+      historyIndex >= 0 ? canvasHistory.slice(0, historyIndex + 1) : [];
+
+    setCanvasHistory([...newHistory, json]);
+    setHistoryIndex(newHistory.length);
+    setUnsavedChanges(true);
+  };
+
+  // Undo function
+  const undo = () => {
+    if (historyIndex <= 0 || !fabricRef.current) return;
+
+    const newIndex = historyIndex - 1;
+    setHistoryIndex(newIndex);
+
+    fabricRef.current.clear();
+    fabricRef.current.loadFromJSON(JSON.parse(canvasHistory[newIndex]), () => {
+      fabricRef.current?.renderAll();
+      updateCanvasState();
+    });
+  };
+
+  // Redo function
+  const redo = () => {
+    if (historyIndex >= canvasHistory.length - 1 || !fabricRef.current) return;
+
+    const newIndex = historyIndex + 1;
+    setHistoryIndex(newIndex);
+
+    fabricRef.current.clear();
+    fabricRef.current.loadFromJSON(JSON.parse(canvasHistory[newIndex]), () => {
+      fabricRef.current?.renderAll();
+      updateCanvasState();
+    });
+  };
+
+  // Copy selected object to clipboard
+  const copySelectedObject = () => {
+    if (!fabricRef.current || !selectedShape) return;
+
+    selectedShape.clone((cloned) => {
+      localStorage.setItem("fabricClipboard", JSON.stringify(cloned.toJSON()));
+    });
+  };
+
+  // Paste object from clipboard
+  const pasteObject = () => {
+    if (!fabricRef.current) return;
+
+    const clipboard = localStorage.getItem("fabricClipboard");
+    if (!clipboard) return;
+
+    try {
+      fabric.util.enlivenObjects([JSON.parse(clipboard)], (objects) => {
+        objects.forEach((obj) => {
+          obj.set({
+            left: obj.left ? obj.left + 20 : 20,
+            top: obj.top ? obj.top + 20 : 20,
+            evented: true,
+          });
+          if (obj.type === "i-text") {
+            (obj as fabric.IText).set("editable", true);
+          }
+          fabricRef.current?.add(obj);
+          fabricRef.current?.setActiveObject(obj);
+        });
+        updateCanvasState();
+      });
+    } catch (e) {
+      console.error("Error pasting object:", e);
+    }
+  };
+
+  // Duplicate selected object
+  const duplicateSelectedObject = () => {
+    if (!fabricRef.current || !selectedShape) return;
+
+    selectedShape.clone((cloned: fabric.Object) => {
+      cloned.set({
+        left: (cloned.left || 0) + 20,
+        top: (cloned.top || 0) + 20,
+        evented: true,
+      });
+      fabricRef.current?.add(cloned);
+      fabricRef.current?.setActiveObject(cloned);
+      updateCanvasState();
+    });
+  };
+
+  // Align objects
+  const alignObjects = (position: string) => {
+    if (!fabricRef.current || !selectedShape) return;
+
+    const canvas = fabricRef.current;
+    const activeObject = canvas.getActiveObject();
+
+    if (!activeObject) return;
+
+    const canvasWidth = canvas.width || 1200;
+    const canvasHeight = canvas.height || 600;
+    let left, top;
+
+    switch (position) {
+      case "left":
+        left = activeObject.width
+          ? (activeObject.width * (activeObject.scaleX || 1)) / 2
+          : 0;
+        canvas.getActiveObject().set({ left: left });
+        break;
+      case "center":
+        left = canvasWidth / 2;
+        canvas.getActiveObject().set({ left: left });
+        break;
+      case "right":
+        left =
+          canvasWidth -
+          (activeObject.width
+            ? (activeObject.width * (activeObject.scaleX || 1)) / 2
+            : 0);
+        canvas.getActiveObject().set({ left: left });
+        break;
+      case "top":
+        top = activeObject.height
+          ? (activeObject.height * (activeObject.scaleY || 1)) / 2
+          : 0;
+        canvas.getActiveObject().set({ top: top });
+        break;
+      case "middle":
+        top = canvasHeight / 2;
+        canvas.getActiveObject().set({ top: top });
+        break;
+      case "bottom":
+        top =
+          canvasHeight -
+          (activeObject.height
+            ? (activeObject.height * (activeObject.scaleY || 1)) / 2
+            : 0);
+        canvas.getActiveObject().set({ top: top });
+        break;
+    }
+
+    canvas.renderAll();
+    updateCanvasState();
+  };
+
+  // Bring selected object forward/backward
+  const changeObjectZOrder = (action: string) => {
+    if (!fabricRef.current || !selectedShape) return;
+
+    switch (action) {
+      case "front":
+        selectedShape.bringToFront();
+        break;
+      case "forward":
+        selectedShape.bringForward();
+        break;
+      case "backward":
+        selectedShape.sendBackwards();
+        break;
+      case "back":
+        selectedShape.sendToBack();
+        break;
+    }
+
+    fabricRef.current.renderAll();
+    updateCanvasState();
+  };
+
+  // Update canvas objects state
   const updateCanvasState = () => {
     if (!fabricRef.current) return;
 
-    const objects = fabricRef.current.getObjects();
-    let allFiles: File[] = [];
+    const objects = fabricRef.current
+      .getObjects()
+      .filter((obj) => !obj.data?.isGrid);
 
     const serializedObjects: CanvasObject[] = objects.map((obj) => {
-      const id = Date.now().toString();
-      let fillValue: CanvasObject["properties"]["fill"] = obj.fill as string;
+      const id = obj.data?.id || Date.now().toString();
+      let fillValue: any = obj.fill as string;
       let files: File[] = [];
 
       if (obj.fill instanceof fabric.Pattern && obj.fill.source) {
@@ -190,11 +609,14 @@ const ShapeEditor: React.FC = () => {
             type: "pattern",
             fileName: file.name,
             repeat: obj.fill.repeat || "repeat",
-            scaleX: obj.fill.patternTransform?.[0]!,
-            scaleY: obj.fill.patternTransform?.[3]!,
+            scaleX: obj.fill.patternTransform?.[0] || 1,
+            scaleY: obj.fill.patternTransform?.[3] || 1,
           };
         }
       }
+
+      // Set object id for history tracking
+      obj.set("data", { id });
 
       return {
         id,
@@ -203,24 +625,27 @@ const ShapeEditor: React.FC = () => {
           type: obj.type || "unknown",
           left: obj.left || 0,
           top: obj.top || 0,
-          width: obj.width,
-          height: obj.height,
-          radius: (obj as fabric.Circle).radius,
+          width: obj.width || 0,
+          height: obj.height || 0,
+          radius: (obj as any).radius,
           fill: fillValue,
           stroke: obj.stroke as string,
           strokeWidth: obj.strokeWidth,
-          path: (obj as fabric.Path).path?.toString(),
-          text: (obj as fabric.Text).text,
-          fontSize: (obj as fabric.Text).fontSize,
+          path: (obj as any).path?.toString(),
+          text: (obj as any).text,
+          fontSize: (obj as any).fontSize,
+          fontFamily: (obj as any).fontFamily,
+          fontWeight: (obj as any).fontWeight?.toString(),
           scaleX: obj.scaleX,
           scaleY: obj.scaleY,
           angle: obj.angle,
+          opacity: obj.opacity,
           shadow: obj.shadow
             ? {
-                color: obj.shadow.color,
-                blur: obj.shadow.blur,
-                offsetX: obj.shadow.offsetX,
-                offsetY: obj.shadow.offsetY,
+                color: obj.shadow.color || "",
+                blur: obj.shadow.blur || 0,
+                offsetx: obj.shadow.offsetX || 0,
+                offsety: obj.shadow.offsetY || 0,
               }
             : undefined,
         },
@@ -230,11 +655,18 @@ const ShapeEditor: React.FC = () => {
     setCanvasObjects(serializedObjects);
   };
 
+  // Handle tool selection
   const handleToolSelect = (tool: string) => {
     if (fabricRef.current) {
       setSelectedTool(tool);
-      fabricRef.current.isDrawingMode = tool === "pencil" || tool === "spray";
-      setIsDrawingMode(fabricRef.current.isDrawingMode);
+
+      // Set drawing mode based on tool
+      const isDrawing =
+        tool === "pencil" || tool === "spray" || tool === "eraser";
+      fabricRef.current.isDrawingMode = isDrawing;
+      setIsDrawingMode(isDrawing);
+
+      // Set appropriate brush
       if (tool === "spray") {
         fabricRef.current.freeDrawingBrush = new fabric.SprayBrush(
           fabricRef.current
@@ -247,10 +679,27 @@ const ShapeEditor: React.FC = () => {
         );
         fabricRef.current.freeDrawingBrush.color = selectedColor;
         fabricRef.current.freeDrawingBrush.width = brushWidth;
+      } else if (tool === "eraser") {
+        // Check if EraserBrush exists in fabric
+        if (fabric.EraserBrush) {  
+          fabricRef.current.freeDrawingBrush = new fabric.EraserBrush(
+            fabricRef.current
+          );
+          fabricRef.current.freeDrawingBrush.width = brushWidth * 2;
+        } else {
+          console.warn("EraserBrush is not available in this version of fabric.js");
+          // Fallback to pencil brush
+          fabricRef.current.freeDrawingBrush = new fabric.PencilBrush(
+            fabricRef.current
+          );
+          fabricRef.current.freeDrawingBrush.color = "#ffffff";
+          fabricRef.current.freeDrawingBrush.width = brushWidth * 2;
+        }
       }
     }
   };
 
+  // Add shape to canvas
   const addShape = (type: string) => {
     if (!fabricRef.current) return;
 
@@ -264,6 +713,9 @@ const ShapeEditor: React.FC = () => {
           width: 100,
           height: 100,
           fill: selectedColor,
+          stroke: strokeColor,
+          strokeWidth: strokeWidth,
+          opacity: opacity / 100,
         });
         break;
       case "circle":
@@ -272,6 +724,9 @@ const ShapeEditor: React.FC = () => {
           top: 100,
           radius: 50,
           fill: selectedColor,
+          stroke: strokeColor,
+          strokeWidth: strokeWidth,
+          opacity: opacity / 100,
         });
         break;
       case "triangle":
@@ -281,24 +736,103 @@ const ShapeEditor: React.FC = () => {
           width: 100,
           height: 100,
           fill: selectedColor,
+          stroke: strokeColor,
+          strokeWidth: strokeWidth,
+          opacity: opacity / 100,
+        });
+        break;
+      case "ellipse":
+        shape = new fabric.Ellipse({
+          left: 100,
+          top: 100,
+          rx: 75,
+          ry: 50,
+          fill: selectedColor,
+          stroke: strokeColor,
+          strokeWidth: strokeWidth,
+          opacity: opacity / 100,
         });
         break;
       case "line":
         shape = new fabric.Line([50, 50, 150, 150], {
           stroke: selectedColor,
           strokeWidth: brushWidth,
+          opacity: opacity / 100,
         });
         break;
       case "text":
-        shape = new fabric.IText("Text", {
+        shape = new fabric.IText("Edit this text", {
           left: 100,
           top: 100,
-          fontSize: 20,
+          fontSize: fontSize,
+          fontFamily: fontFamily,
+          fontWeight: fontWeight,
           fill: selectedColor,
+          stroke: strokeColor,
+          strokeWidth: strokeWidth > 0 ? strokeWidth / 3 : 0, // Thinner stroke for text
+          opacity: opacity / 100,
+          editable: true,
+        });
+        break;
+      case "polygon":
+        shape = new fabric.Polygon(
+          [
+            { x: 0, y: 0 },
+            { x: 50, y: 0 },
+            { x: 75, y: 50 },
+            { x: 50, y: 100 },
+            { x: 0, y: 100 },
+            { x: -25, y: 50 },
+          ],
+          {
+            left: 100,
+            top: 100,
+            fill: selectedColor,
+            stroke: strokeColor,
+            strokeWidth: strokeWidth,
+            opacity: opacity / 100,
+          }
+        );
+        break;
+      case "star":
+        const points = [];
+        const outerRadius = 50;
+        const innerRadius = 25;
+        const spikes = 5;
+
+        for (let i = 0; i < spikes * 2; i++) {
+          const radius = i % 2 === 0 ? outerRadius : innerRadius;
+          const angle = (Math.PI / spikes) * i;
+          points.push({
+            x: radius * Math.sin(angle),
+            y: radius * Math.cos(angle),
+          });
+        }
+
+        shape = new fabric.Polygon(points, {
+          left: 100,
+          top: 100,
+          fill: selectedColor,
+          stroke: strokeColor,
+          strokeWidth: strokeWidth,
+          opacity: opacity / 100,
         });
         break;
       default:
         return;
+    }
+
+    // Apply shadow if enabled
+    if (shadowEnabled) {
+      shape.set(
+        "shadow",
+        new fabric.Shadow({
+          color: shadowOptions.color,
+          blur: shadowOptions.blur,
+          offsetX: shadowOptions.offsetx,
+          offsetY: shadowOptions.offsety,
+        })
+      );
     }
 
     fabricRef.current.add(shape);
@@ -306,14 +840,17 @@ const ShapeEditor: React.FC = () => {
     updateCanvasState();
   };
 
+  // Delete selected object
   const deleteSelectedObject = () => {
     if (fabricRef.current && selectedShape) {
       fabricRef.current.remove(selectedShape);
       setSelectedShape(null);
       updateCanvasState();
+      addToHistory();
     }
   };
 
+  // Apply pattern to selected shape
   const applyPatternToShape = (file: File) => {
     if (!fabricRef.current || !selectedShape) return;
 
@@ -343,6 +880,7 @@ const ShapeEditor: React.FC = () => {
         selectedShape.set("fill", pattern);
         fabricRef.current?.renderAll();
         updateCanvasState();
+        addToHistory();
       };
 
       img.src = imgUrl;
@@ -350,6 +888,7 @@ const ShapeEditor: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  // Update selected object's shadow
   const updateSelectedObjectShadow = () => {
     if (!fabricRef.current || !selectedShape) return;
 
@@ -359,8 +898,8 @@ const ShapeEditor: React.FC = () => {
         new fabric.Shadow({
           color: shadowOptions.color,
           blur: shadowOptions.blur,
-          offsetX: shadowOptions.offsetX,
-          offsetY: shadowOptions.offsetY,
+          offsetX: shadowOptions.offsetx,
+          offsetY: shadowOptions.offsety,
         })
       );
     } else {
@@ -371,400 +910,45 @@ const ShapeEditor: React.FC = () => {
     updateCanvasState();
   };
 
-  const onSave = (objects: CanvasObject[]) => {
-    console.log("Saving canvas objects:", objects);
-    // Implement save functionality
+  // Update properties of selected shape
+  const updateSelectedObject = () => {
+    if (!fabricRef.current || !selectedShape) return;
+
+    selectedShape.set({
+      fill: selectedColor,
+      stroke: strokeColor,
+      strokeWidth: strokeWidth,
+      opacity: opacity / 100,
+    });
+
+    // Update text-specific properties
+    if (selectedShape.type === "i-text" || selectedShape.type === "text") {
+      (selectedShape as fabric.IText).set({
+        fontSize: fontSize,
+        fontFamily: fontFamily,
+        fontWeight: fontWeight,
+      });
+    }
+
+    fabricRef.current.renderAll();
+    updateCanvasState();
   };
 
-  return (
-    <div className="min-h-screen p-4 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Tools Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Tools Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Tools
-            </h3>
-            <select
-              value={selectedTool}
-              onChange={(e) => handleToolSelect(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-            >
-              <option value="select">Select</option>
-              <option value="pencil">Pencil</option>
-              <option value="spray">Spray</option>
-            </select>
-          </div>
+  // Effect to update object properties when controls change
+  useEffect(() => {
+    updateSelectedObject();
+  }, [
+    selectedColor,
+    strokeColor,
+    strokeWidth,
+    opacity,
+    fontSize,
+    fontFamily,
+    fontWeight,
+  ]);
 
-          {/* Shapes Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Shapes
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {["rectangle", "circle", "triangle", "line", "text"].map(
-                (shape) => (
-                  <button
-                    key={shape}
-                    onClick={() => addShape(shape)}
-                    className="px-3 py-2 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-                  >
-                    {shape.charAt(0).toUpperCase() + shape.slice(1)}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Color and Brush Size Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Style
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <span className="text-gray-700 dark:text-gray-300">Color</span>
-                <input
-                  type="color"
-                  value={selectedColor}
-                  onChange={(e) => {
-                    setSelectedColor(e.target.value);
-                    if (fabricRef.current?.freeDrawingBrush) {
-                      fabricRef.current.freeDrawingBrush.color = e.target.value;
-                    }
-                  }}
-                  className="w-10 h-10 rounded-lg cursor-pointer"
-                />
-              </div>
-              <div className="space-y-2">
-                <span className="text-gray-700 dark:text-gray-300">
-                  Brush Size
-                </span>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    value={brushWidth}
-                    onChange={(e) => {
-                      const width = parseInt(e.target.value);
-                      setBrushWidth(width);
-                      if (fabricRef.current?.freeDrawingBrush) {
-                        fabricRef.current.freeDrawingBrush.width = width;
-                      }
-                    }}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">
-                    {brushWidth}px
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pattern Fill Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Pattern Fill
-            </h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  applyPatternToShape(file);
-                }
-              }}
-              disabled={!selectedShape}
-              className="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            {!selectedShape && (
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Select a shape to apply pattern
-              </p>
-            )}
-          </div>
-
-          {/* Shadow Controls */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4 mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                Shadow
-              </h3>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={shadowEnabled}
-                  onChange={(e) => {
-                    setShadowEnabled(e.target.checked);
-                    updateSelectedObjectShadow();
-                  }}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
-              </label>
-            </div>
-            {shadowEnabled && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Color
-                  </span>
-                  <input
-                    type="color"
-                    value={shadowOptions.color}
-                    onChange={(e) => {
-                      setShadowOptions({
-                        ...shadowOptions,
-                        color: e.target.value,
-                      });
-                      updateSelectedObjectShadow();
-                    }}
-                    className="w-10 h-10 rounded-lg cursor-pointer"
-                  />
-                </div>
-                {["Blur", "Offset X", "Offset Y"].map((label) => (
-                  <div key={label} className="space-y-2">
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {label}
-                    </span>
-                    <div className="flex items-center gap-4">
-                      <input
-                        type="range"
-                        min="-50"
-                        max="50"
-                        value={
-                          shadowOptions[
-                            label
-                              .toLowerCase()
-                              .replace(" ", "") as keyof ShadowOptions
-                          ]
-                        }
-                        onChange={(e) => {
-                          setShadowOptions({
-                            ...shadowOptions,
-                            [label
-                              .toLowerCase()
-                              .replace(" ", "") as keyof ShadowOptions]:
-                              parseInt(e.target.value),
-                          });
-                          updateSelectedObjectShadow();
-                        }}
-                        className="flex-1"
-                      />
-                      <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">
-                        {
-                          shadowOptions[
-                            label
-                              .toLowerCase()
-                              .replace(" ", "") as keyof ShadowOptions
-                          ]
-                        }
-                        px
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-4">
-          <button
-            onClick={deleteSelectedObject}
-            disabled={!selectedShape}
-            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Delete Selected
-          </button>
-          <button
-            onClick={() => {
-              if (fabricRef.current) {
-                fabricRef.current.clear();
-                updateCanvasState();
-              }
-            }}
-            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            Clear Canvas
-          </button>
-          <button
-            onClick={() => onSave(canvasObjects)}
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            Save Design
-          </button>
-        </div>
-
-        {/* Canvas */}
-        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-          <canvas
-            ref={canvasRef}
-            className="w-full max-w-full h-[600px] rounded-lg"
-          />
-          {!selectedShape && isDrawingMode && (
-            <div className="absolute top-8 left-8 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Drawing Mode Active
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Status Bar */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-          <span className="text-sm text-gray-700 dark:text-gray-300">
-            {selectedShape
-              ? `Selected: ${selectedShape.type} - Use arrow keys to move, delete key to remove`
-              : "No shape selected"}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ShapeEditor;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import React, { useEffect, useRef, useState } from "react";
-import * as fabric from "fabric";
-
-interface ShadowOptions {
-  color: string;
-  blur: number;
-  offsetX: number;
-  offsetY: number;
-}
-interface ShapeInfo {
-  ShapeName: string;
-  AccessSpecifier: string;
-  width: number;
-  height: number;
-  CoverImage: File | null;
-  imageUrl?: string;
-  publicId?: string;
-  designData?: string;
-}
-export interface CanvasObject {
-  id: string;
-  files?: File[];
-  properties: {
-    type: string;
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    radius?: number;
-    fill:
-      | string
-      | {
-          type: string;
-          fileName: string;
-          repeat: string;
-          scaleX: number;
-          scaleY: number;
-        };
-    stroke?: string;
-    strokeWidth?: number;
-    path?: string;
-    text?: string;
-    fontSize?: number;
-    scaleX?: number;
-    scaleY?: number;
-    angle?: number;
-    shadow?: {
-      color: string;
-      blur: number;
-      offsetX: number;
-      offsetY: number;
-    };
-  };
-}
-
-const ShapeEditor: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<fabric.Canvas | null>(null);
-  const [selectedTool, setSelectedTool] = useState("select");
-  const [selectedColor, setSelectedColor] = useState("#000000");
-  const [brushWidth, setBrushWidth] = useState(5);
-  const [selectedShape, setSelectedShape] = useState<fabric.Object | null>(
-    null
-  );
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [canvasObjects, setCanvasObjects] = useState<CanvasObject[]>([]);
-  const [shadowEnabled, setShadowEnabled] = useState(false);
-  const [shadowOptions, setShadowOptions] = useState<ShadowOptions>({
-    color: "#000000",
-    blur: 10,
-    offsetX: 5,
-    offsetY: 5,
-  });
-  const [shapeInfo, setShapeInfo] = useState<ShapeInfo>({
-    ShapeName: "",
-    AccessSpecifier: "",
-    width: 50,
-    height: 50,
-    CoverImage: null,
-  });
-  interface ApiResponse {
-    success: boolean;
-    message: string;
-    imageUrl?: string;
-    publicId?: string;
-  }
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const handleDesignSave = async (canvasObjects: any[]) => {
+  // Save design to server
+   const handleDesignSave = async (canvasObjects: any[]) => {
     if (!canvasObjects.length) return;
     console.log(canvasObjects);
     try {
@@ -782,8 +966,9 @@ const ShapeEditor: React.FC = () => {
       });
 
       // Append additional data to FormData
-      formData.append("ShapeName", shapeInfo.ShapeName);
-      formData.append("AccessSpecifier", shapeInfo.AccessSpecifier);
+      formData.append("AssetName", shapeInfo.AssetName);
+      formData.append("AssetStatus", shapeInfo.AssetStatus);
+      formData.append("AssetCategory", shapeInfo.AssetCategory.join(","));
       formData.append("CanvasObject", JSON.stringify(canvasObjects));
       formData.append("FileCount", allFiles.length.toString());
 
@@ -799,512 +984,14 @@ const ShapeEditor: React.FC = () => {
       const data: ApiResponse = await uploadResponse.json();
       if (data.success) {
         alert("Design saved successfully!");
+        setUnsavedChanges(false);
       } else {
         throw new Error(data.message || "Save failed");
       }
     } catch (error: any) {
       setError(error.message);
+      alert(`Error saving design: ${error.message}`);
     } finally {
       setIsUploading(false);
     }
   };
-  useEffect(() => {
-    if (canvasRef.current) {
-      const canvas = new fabric.Canvas(canvasRef.current, {
-        width: window.innerWidth > 800 ? 800 : window.innerWidth - 40,
-        height: 600,
-        backgroundColor: "#ffffff",
-        isDrawingMode: false,
-      });
-
-      const handleResize = () => {
-        const width = window.innerWidth > 800 ? 800 : window.innerWidth - 40;
-        canvas.setWidth(width);
-        canvas.renderAll();
-      };
-
-      window.addEventListener("resize", handleResize);
-
-      fabricRef.current = canvas;
-      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = selectedColor;
-      canvas.freeDrawingBrush.width = brushWidth;
-
-      canvas.on("selection:created", (e) => {
-        setSelectedShape(e.selected?.[0] || null);
-      });
-
-      canvas.on("selection:cleared", () => {
-        setSelectedShape(null);
-      });
-
-      canvas.on("object:modified", updateCanvasState);
-      canvas.on("object:added", updateCanvasState);
-      canvas.on("object:removed", updateCanvasState);
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-        canvas.dispose();
-      };
-    }
-  }, []);
-
-  const updateCanvasState = () => {
-    if (!fabricRef.current) return;
-
-    const objects = fabricRef.current.getObjects();
-    let allFiles: File[] = [];
-
-    const serializedObjects: CanvasObject[] = objects.map((obj) => {
-      const id = Date.now().toString();
-      let fillValue: CanvasObject["properties"]["fill"] = obj.fill as string;
-      let files: File[] = [];
-
-      if (obj.fill instanceof fabric.Pattern && obj.fill.source) {
-        if ((obj as any)._patternFile) {
-          const file = (obj as any)._patternFile;
-          files.push(file);
-          fillValue = {
-            type: "pattern",
-            fileName: file.name,
-            repeat: obj.fill.repeat || "repeat",
-            scaleX: obj.fill.patternTransform?.[0]!,
-            scaleY: obj.fill.patternTransform?.[3]!,
-          };
-        }
-      }
-
-      return {
-        id,
-        files: files.length > 0 ? files : undefined,
-        properties: {
-          type: obj.type || "unknown",
-          left: obj.left || 0,
-          top: obj.top || 0,
-          width: obj.width,
-          height: obj.height,
-          radius: (obj as fabric.Circle).radius,
-          fill: fillValue,
-          stroke: obj.stroke as string,
-          strokeWidth: obj.strokeWidth,
-          path: (obj as fabric.Path).path?.toString(),
-          text: (obj as fabric.Text).text,
-          fontSize: (obj as fabric.Text).fontSize,
-          scaleX: obj.scaleX,
-          scaleY: obj.scaleY,
-          angle: obj.angle,
-          shadow: obj.shadow
-            ? {
-                color: obj.shadow.color,
-                blur: obj.shadow.blur,
-                offsetX: obj.shadow.offsetX,
-                offsetY: obj.shadow.offsetY,
-              }
-            : undefined,
-        },
-      };
-    });
-
-    setCanvasObjects(serializedObjects);
-  };
-
-  const handleToolSelect = (tool: string) => {
-    if (fabricRef.current) {
-      setSelectedTool(tool);
-      fabricRef.current.isDrawingMode = tool === "pencil" || tool === "spray";
-      setIsDrawingMode(fabricRef.current.isDrawingMode);
-      if (tool === "spray") {
-        fabricRef.current.freeDrawingBrush = new fabric.SprayBrush(
-          fabricRef.current
-        );
-        fabricRef.current.freeDrawingBrush.color = selectedColor;
-        fabricRef.current.freeDrawingBrush.width = brushWidth;
-      } else if (tool === "pencil") {
-        fabricRef.current.freeDrawingBrush = new fabric.PencilBrush(
-          fabricRef.current
-        );
-        fabricRef.current.freeDrawingBrush.color = selectedColor;
-        fabricRef.current.freeDrawingBrush.width = brushWidth;
-      }
-    }
-  };
-
-  const addShape = (type: string) => {
-    if (!fabricRef.current) return;
-
-    let shape: fabric.Object;
-
-    switch (type) {
-      case "rectangle":
-        shape = new fabric.Rect({
-          left: 100,
-          top: 100,
-          width: 100,
-          height: 100,
-          fill: selectedColor,
-        });
-        break;
-      case "circle":
-        shape = new fabric.Circle({
-          left: 100,
-          top: 100,
-          radius: 50,
-          fill: selectedColor,
-        });
-        break;
-      case "triangle":
-        shape = new fabric.Triangle({
-          left: 100,
-          top: 100,
-          width: 100,
-          height: 100,
-          fill: selectedColor,
-        });
-        break;
-      case "line":
-        shape = new fabric.Line([50, 50, 150, 150], {
-          stroke: selectedColor,
-          strokeWidth: brushWidth,
-        });
-        break;
-      case "text":
-        shape = new fabric.IText("Text", {
-          left: 100,
-          top: 100,
-          fontSize: 20,
-          fill: selectedColor,
-        });
-        break;
-      default:
-        return;
-    }
-
-    fabricRef.current.add(shape);
-    fabricRef.current.setActiveObject(shape);
-    updateCanvasState();
-  };
-
-  const deleteSelectedObject = () => {
-    if (fabricRef.current && selectedShape) {
-      fabricRef.current.remove(selectedShape);
-      setSelectedShape(null);
-      updateCanvasState();
-    }
-  };
-
-  const applyPatternToShape = (file: File) => {
-    if (!fabricRef.current || !selectedShape) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imgUrl = event.target?.result as string;
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-
-      img.onload = () => {
-        const shapeWidth = selectedShape.width! * (selectedShape.scaleX || 1);
-        const shapeHeight = selectedShape.height! * (selectedShape.scaleY || 1);
-        const scale = Math.min(
-          shapeWidth / img.width,
-          shapeHeight / img.height
-        );
-
-        const pattern = new fabric.Pattern({
-          source: img,
-          repeat: "repeat",
-          offsetX: 0,
-          offsetY: 0,
-          patternTransform: [scale, 0, 0, scale, 0, 0],
-        });
-
-        (selectedShape as any)._patternFile = file;
-        selectedShape.set("fill", pattern);
-        fabricRef.current?.renderAll();
-        updateCanvasState();
-      };
-
-      img.src = imgUrl;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const updateSelectedObjectShadow = () => {
-    if (!fabricRef.current || !selectedShape) return;
-
-    if (shadowEnabled) {
-      selectedShape.set(
-        "shadow",
-        new fabric.Shadow({
-          color: shadowOptions.color,
-          blur: shadowOptions.blur,
-          offsetX: shadowOptions.offsetX,
-          offsetY: shadowOptions.offsetY,
-        })
-      );
-    } else {
-      selectedShape.set("shadow", null);
-    }
-
-    fabricRef.current.renderAll();
-    updateCanvasState();
-  };
-
-  const onSave = (objects: CanvasObject[]) => {
-    console.log("Saving canvas objects:", objects);
-    // Implement save functionality
-  };
-
-  return (
-    <div className="min-h-screen p-4 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Tools Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Tools Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Tools
-            </h3>
-            <select
-              value={selectedTool}
-              onChange={(e) => handleToolSelect(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-            >
-              <option value="select">Select</option>
-              <option value="pencil">Pencil</option>
-              <option value="spray">Spray</option>
-            </select>
-          </div>
-
-          {/* Shapes Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Shapes
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {["rectangle", "circle", "triangle", "line", "text"].map(
-                (shape) => (
-                  <button
-                    key={shape}
-                    onClick={() => addShape(shape)}
-                    className="px-3 py-2 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-                  >
-                    {shape.charAt(0).toUpperCase() + shape.slice(1)}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Color and Brush Size Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Style
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <span className="text-gray-700 dark:text-gray-300">Color</span>
-                <input
-                  type="color"
-                  value={selectedColor}
-                  onChange={(e) => {
-                    setSelectedColor(e.target.value);
-                    if (fabricRef.current?.freeDrawingBrush) {
-                      fabricRef.current.freeDrawingBrush.color = e.target.value;
-                    }
-                  }}
-                  className="w-10 h-10 rounded-lg cursor-pointer"
-                />
-              </div>
-              <div className="space-y-2">
-                <span className="text-gray-700 dark:text-gray-300">
-                  Brush Size
-                </span>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    value={brushWidth}
-                    onChange={(e) => {
-                      const width = parseInt(e.target.value);
-                      setBrushWidth(width);
-                      if (fabricRef.current?.freeDrawingBrush) {
-                        fabricRef.current.freeDrawingBrush.width = width;
-                      }
-                    }}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">
-                    {brushWidth}px
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pattern Fill Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Pattern Fill
-            </h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  applyPatternToShape(file);
-                }
-              }}
-              disabled={!selectedShape}
-              className="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            {!selectedShape && (
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Select a shape to apply pattern
-              </p>
-            )}
-          </div>
-
-          {/* Shadow Controls */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4 mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                Shadow
-              </h3>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={shadowEnabled}
-                  onChange={(e) => {
-                    setShadowEnabled(e.target.checked);
-                    updateSelectedObjectShadow();
-                  }}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
-              </label>
-            </div>
-            {shadowEnabled && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Color
-                  </span>
-                  <input
-                    type="color"
-                    value={shadowOptions.color}
-                    onChange={(e) => {
-                      setShadowOptions({
-                        ...shadowOptions,
-                        color: e.target.value,
-                      });
-                      updateSelectedObjectShadow();
-                    }}
-                    className="w-10 h-10 rounded-lg cursor-pointer"
-                  />
-                </div>
-                {["Blur", "Offset X", "Offset Y"].map((label) => (
-                  <div key={label} className="space-y-2">
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {label}
-                    </span>
-                    <div className="flex items-center gap-4">
-                      <input
-                        type="range"
-                        min="-50"
-                        max="50"
-                        value={
-                          shadowOptions[
-                            label
-                              .toLowerCase()
-                              .replace(" ", "") as keyof ShadowOptions
-                          ]
-                        }
-                        onChange={(e) => {
-                          setShadowOptions({
-                            ...shadowOptions,
-                            [label
-                              .toLowerCase()
-                              .replace(" ", "") as keyof ShadowOptions]:
-                              parseInt(e.target.value),
-                          });
-                          updateSelectedObjectShadow();
-                        }}
-                        className="flex-1"
-                      />
-                      <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">
-                        {
-                          shadowOptions[
-                            label
-                              .toLowerCase()
-                              .replace(" ", "") as keyof ShadowOptions
-                          ]
-                        }
-                        px
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-4">
-          <button
-            onClick={deleteSelectedObject}
-            disabled={!selectedShape}
-            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Delete Selected
-          </button>
-          <button
-            onClick={() => {
-              if (fabricRef.current) {
-                fabricRef.current.clear();
-                updateCanvasState();
-              }
-            }}
-            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            Clear Canvas
-          </button>
-          <button
-            onClick={() => onSave(canvasObjects)}
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            Save Design
-          </button>
-        </div>
-
-        {/* Canvas */}
-        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-          <canvas
-            ref={canvasRef}
-            className="w-full max-w-full h-[600px] rounded-lg"
-          />
-          {!selectedShape && isDrawingMode && (
-            <div className="absolute top-8 left-8 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Drawing Mode Active
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Status Bar */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-          <span className="text-sm text-gray-700 dark:text-gray-300">
-            {selectedShape
-              ? `Selected: ${selectedShape.type} - Use arrow keys to move, delete key to remove`
-              : "No shape selected"}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ShapeEditor;

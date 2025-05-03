@@ -20,145 +20,116 @@ model User {
    OtpExpire      DateTime?
    createdAt      DateTime  @default(now())
    updatedAt      DateTime  @updatedAt
-   
+
    // Shapes created by the user
-   Shapes         Shape[]
-   
+   Shapes Shape[]
+
    // Worlds created by the user
-   Worlds         Worlds[]  @relation("WorldsCreator")
-   
+   Worlds Worlds[] @relation("WorldsCreator")
+
    // Recent activity for the user
    RecentActivity RecentActivity[]
-   
+
    // Worlds liked by the user
-   LikedWorlds    WorldLike[]
+   LikedWorlds WorldLike[]
 }
 
 model Worlds {
-   id               String   @id @default(auto()) @map("_id") @db.ObjectId
+   id               String          @id @default(auto()) @map("_id") @db.ObjectId
    WorldName        String
    WorldDescription String
    WorldCoverImage  String
    AccessSpecifier  AccessSpecifier @default(PUBLIC)
-   
+
    // Creator relationship
-   CreatorId        String   @db.ObjectId
-   Creator          User     @relation("WorldsCreator", fields: [CreatorId], references: [id])
-   
+   CreatorId String @db.ObjectId
+   Creator   User   @relation("WorldsCreator", fields: [CreatorId], references: [id])
+
    // Shapes in the world
-   WorldShapes      WorldShape[]
-   
+   WorldShapes WorldShape[]
+
    // Timestamps
-   createdAt        DateTime @default(now())
-   updatedAt        DateTime @updatedAt
-   
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
+
    // Recent activity for this world
    // RecentActivity   RecentActivity[]
-   
+
    // Likes for this world
-   Likes            WorldLike[]
+   Likes WorldLike[]
 }
 
 // Intermediate model for World Likes
 model WorldLike {
-   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-   
+   id String @id @default(auto()) @map("_id") @db.ObjectId
+
    // User who liked the world
-   UserId     String   @db.ObjectId
-   User       User     @relation(fields: [UserId], references: [id])
-   
+   UserId String @db.ObjectId
+   User   User   @relation(fields: [UserId], references: [id])
+
    // World that was liked
-   WorldId    String   @db.ObjectId
-   World      Worlds   @relation(fields: [WorldId], references: [id])
-   
+   WorldId String @db.ObjectId
+   World   Worlds @relation(fields: [WorldId], references: [id])
+
    // Timestamp of like
-   likedAt    DateTime @default(now())
-   
+   likedAt DateTime @default(now())
+
    // Ensure unique like per user per world
    @@unique([UserId, WorldId])
 }
 
 // Existing intermediate model for World Shapes
 model WorldShape {
-   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-   WorldId    String   @db.ObjectId
-   ShapeId    String   @db.ObjectId
-   World      Worlds   @relation(fields: [WorldId], references: [id])
-   Shape      Shape    @relation(fields: [ShapeId], references: [id])
-   addedAt    DateTime @default(now())
-   
+   id      String   @id @default(auto()) @map("_id") @db.ObjectId
+   WorldId String   @db.ObjectId
+   ShapeId String   @db.ObjectId
+   World   Worlds   @relation(fields: [WorldId], references: [id])
+   Shape   Shape    @relation(fields: [ShapeId], references: [id])
+   addedAt DateTime @default(now())
+
    @@unique([WorldId, ShapeId])
 }
 
 model Shape {
-   id              String   @id @default(auto()) @map("_id") @db.ObjectId
+   id              String           @id @default(auto()) @map("_id") @db.ObjectId
    ShapeName       String
-   CreatorId       String   @db.ObjectId
-   Creator         User     @relation(fields: [CreatorId], references: [id])
-   AccessSpecifier AccessSpecifier @default(PUBLIC)
+   CreatorId       String           @db.ObjectId
+   Creator         User             @relation(fields: [CreatorId], references: [id])
+   AccessSpecifier AccessSpecifier  @default(PUBLIC)
    Category        String[]
-   CanvasObjects   CanvasObject[]
-   createdAt       DateTime @default(now())
-   updatedAt       DateTime @updatedAt
-   
+   Properties      CanvasProperties
+   createdAt       DateTime         @default(now())
+   updatedAt       DateTime         @updatedAt
+
    // Many-to-many relationship with Worlds
-   WorldShapes     WorldShape[]
+   WorldShapes WorldShape[]
 }
 
 // Existing type and enum definitions remain the same
-type CanvasObject {
-   id         String
-   files      File?
-   properties Properties
-}
-
-type File {
-   filename String
-   url      String
-}
-
-type Properties {
-   type        ShapeType
-   left        Float
-   top         Float
-   width       Float
-   height      Float
-   radius      Float?
-   fill        Json?
-   stroke      String?
-   strokeWidth Float     @default(1)
-   scaleX      Float     @default(1)
-   scaleY      Float     @default(1)
-   angle       Float     @default(0)
-   path        String[]
-}
 
 enum AccessSpecifier {
    PRIVATE
    PUBLIC
 }
 
-enum ShapeType {
-   RECT
-   CIRCLE
-   TRIANGLE
-   TEXTBOX
-   LINE
-   PATH
-   GROUP
+type CanvasProperties {
+   version    String
+   objects    Json[]
+   background String
 }
 
 // Additional model for Recent Activity (if needed)
 model RecentActivity {
-   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-   UserId     String   @db.ObjectId
-   User       User     @relation(fields: [UserId], references: [id])
-   WorldId    String   @db.ObjectId
+   id         String     @id @default(auto()) @map("_id") @db.ObjectId
+   UserId     String     @db.ObjectId
+   User       User       @relation(fields: [UserId], references: [id])
+   WorldId    String     @db.ObjectId
    // World      Worlds   @relation(fields: [WorldId], references: [id])
    actionType ActionType
    comment    String?
-   createdAt  DateTime @default(now())
+   createdAt  DateTime   @default(now())
 }
+
 enum ActionType {
    JOINED_WORLD
    LIKED_WORLD
