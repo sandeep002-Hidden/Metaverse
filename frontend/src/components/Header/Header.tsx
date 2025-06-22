@@ -10,7 +10,7 @@ import ThemeSwitcher from "../Toogle/ThemeSwithcer";
 import { IoLogOut } from "react-icons/io5";
 import { HiMenu, HiX } from "react-icons/hi";
 import Loader from "../Loader/Loader";
-
+import SearchField from "../SearchField/searchField";
 export default function Header() {
   const navigate = useNavigate();
   const { user, setUser } = useUser();
@@ -21,7 +21,6 @@ export default function Header() {
     Message: "",
     isGood: true,
   });
-
   useEffect(() => {
     const getUserDetails = async () => {
       try {
@@ -41,7 +40,7 @@ export default function Header() {
           isGood: true,
         });
       } catch (error: any) {
-        const err:any = error as AxiosError;
+        const err: any = error as AxiosError;
         const errorMessage = err.response?.data?.message || "An error occurred";
         setMessage({ ...message, Message: errorMessage, isGood: false });
       } finally {
@@ -71,7 +70,7 @@ export default function Header() {
         navigate("/");
       }
     } catch (error) {
-      const err:any = error as AxiosError;
+      const err: any = error as AxiosError;
       const errorMessage = err.response?.data?.message || "An error occurred";
       setMessage({ ...message, Message: errorMessage, isGood: false });
     } finally {
@@ -96,9 +95,7 @@ export default function Header() {
   return (
     <>
       {loading && (
-        <div className="h-16 px-4 md:px-0 flex justify-between items-center relative">
           <Loader />
-        </div>
       )}
 
       <div className="h-16 px-4 md:px-0 flex justify-between items-center relative shadow-sm noScrollBar">
@@ -119,6 +116,7 @@ export default function Header() {
         </div>
 
         <span className="hidden md:flex w-1/2 items-center justify-around">
+          <SearchField />
           <ThemeSwitcher isAuth={true} />
           <button
             onClick={() => setSeeProfileDiv(!seeprofileDiv)}

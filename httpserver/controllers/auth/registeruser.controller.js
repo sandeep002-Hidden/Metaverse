@@ -16,7 +16,7 @@ function validatePassword(password) {
   return passwordPattern.test(password);
 }
 function validateUserName(username) {
-  const userNamePattern = /^[a-zA-Z0-9]{4,12}$/;
+  const userNamePattern = /^[a-zA-Z0-9]{4,32}$/;
   return userNamePattern.test(username);
 }
 export default async function registerUser(req, res) {

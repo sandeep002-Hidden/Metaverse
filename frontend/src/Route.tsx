@@ -20,6 +20,8 @@ import CreateAssets from "./routes/my/Assets/CreateAssets";
 import AssetFabric from "./routes/my/Assets/AssetFabric";
 import CreateMaps from "./routes/my/maps/CreateMaps";
 import MapFabric from "./routes/my/maps/MapFabric";
+import Find from "./routes/Find/Find";
+import Game from "./routes/Game/Game";
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -34,6 +36,9 @@ export const router = createBrowserRouter(
         <Route path="asset" element={<AssetStore />} />//all the assets are visible
         <Route path="maps" element={<Maps />} />// all the maps are visible
         <Route path="customersupport" element={<CustomerSupport />} />
+        <Route path=":type/find/:id" element={<Find />} />
+        <Route path="game" element={<Game />} />
+        
         <Route path="user">
           <Route path="profile/:id" element={<Profile />} />
           <Route path="createassets">
@@ -51,6 +56,7 @@ export const router = createBrowserRouter(
           </Route>
 
         </Route>
+
       </Route>
     </>
   )

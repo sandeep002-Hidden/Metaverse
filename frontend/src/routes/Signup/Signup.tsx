@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { IconBrandGithub, IconBrandGoogle } from "@tabler/icons-react";
 import { FileUpload } from "../../components/ui/file-upload";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 interface userDetaill {
   FirstName: string;
   LastName: string;
@@ -16,6 +17,7 @@ interface userDetaill {
   ProfilePicture: File;
 }
 export default function Signup() {
+  const router=useNavigate()
   const [user, setUser] = useState<userDetaill>({
     FirstName: "",
     LastName: "",
@@ -78,6 +80,7 @@ export default function Signup() {
 
       if (response.data.success) {
         setMessage({ Message: "Registration successful", isGood: true });
+        router("/login")
       }
     } catch (error: any) {
       setMessage({

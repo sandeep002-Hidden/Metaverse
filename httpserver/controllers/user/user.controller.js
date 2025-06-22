@@ -1,24 +1,24 @@
 import jwt from "jsonwebtoken";
 import prisma from "../../prisma/prisma.js";
+import replaceTokens from "../auth/replaceTokens.js";
 
 const getuserdetails = async (req, res) => {
   try {
     const userId = req.user;
-    // console.log("User ID from request:", userId);
-    // console.log("Access token from request:", req.accessToken ? "Present" : "Not present");
-    // console.log("Refresh token from request:", req.refreshToken ? "Present" : "Not present");
-    
+
     if (!userId) {
-      // console.log("User ID not found in request");
-      return res.status(401).json({ message: "User not found", success: false });
+      return res
+        .status(401)
+        .json({ message: "User not found", success: false });
     }
-    
+
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      // console.log("User not found in database");
-      return res.status(401).json({ message: "User not found", success: false });
+      return res
+        .status(401)
+        .json({ message: "User not found", success: false });
     }
-    
+
     const sendUser = {
       id: user.id,
       profilePic: user.ProfilePicture,
@@ -27,39 +27,89 @@ const getuserdetails = async (req, res) => {
       Email: user.Email,
       UserName: user.UserName,
     };
-    
+
     // Set new cookies if tokens were refreshed
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: req.accessToken ? 3600000 : undefined // 1 hour for access token
-    };
-    
-    const refreshCookieOptions = {
-      ...cookieOptions,
-      maxAge: req.refreshToken ? 7 * 24 * 3600000 : undefined // 7 days for refresh token
-    };
-    
-    if (req.accessToken) {
-      res.cookie("NexoraAccessToken", req.accessToken, cookieOptions);
-      // console.log("New access token cookie set");
-    }
-    
-    if (req.refreshToken) {
-      res.cookie("NexoraRefreshToken", req.refreshToken, refreshCookieOptions);
-      // console.log("New refresh token cookie set");
-    }
-    
+    const updatedRes = replaceTokens(req, res);
+
     const response = {
       message: "User details retrieved successfully",
       success: true,
-      user: sendUser
+      user: sendUser,
     };
-    return res.status(200).json(response);
+    return updatedRes.status(200).json(response);
   } catch (error) {
     console.log("Error in getUserDetails:", error);
     return res.status(500).json({ message: error.message, success: false });
   }
 };
 
-export { getuserdetails };
+const search = async (req, res) => {
+  try {
+    const query = req.params.query;
+
+    // Search for users matching the query in username, first name, or last name
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { UserName: { contains: query, mode: "insensitive" } },
+          { FirstName: { contains: query, mode: "insensitive" } },
+          { LastName: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        ProfilePicture: true,
+        FirstName: true,
+        LastName: true,
+        UserName: true,
+      },
+    });
+
+    const shapes = await prisma.shape.findMany({
+      where: {
+        OR: [{ ShapeName: { contains: query, mode: "insensitive" } }],
+      },
+      select: {
+        ShapeName:true,
+        CreatorId:true,
+      },
+    });
+
+    // Search for worlds/maps matching the query
+    const worlds = await prisma.worlds.findMany({
+      where: {
+        OR: [{ WorldName: { contains: query, mode: "insensitive" } }],
+      },
+      select: {
+        WorldName:true,
+        WorldDescription:true,
+        AccessSpecifier:true,
+      },
+    });
+
+    // Format worlds to include like count
+
+    const updatedRes = replaceTokens(req, res);
+    const response = {
+      message: `Results for query "${query}"`,
+      success: true,
+
+      users,
+      shapes,
+      worlds: worlds,
+      counts: {
+        users: users.length,
+        shapes: shapes.length,
+        worlds: worlds.length,
+        total: users.length + shapes.length + worlds.length,
+      },
+    };
+
+    return updatedRes.status(200).json(response);
+  } catch (error) {
+    console.log("Error in search function:", error);
+    return res.status(500).json({ message: error.message, success: false });
+  }
+};
+
+export { getuserdetails, search };
