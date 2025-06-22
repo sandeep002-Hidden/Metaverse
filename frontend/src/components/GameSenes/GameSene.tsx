@@ -1210,6 +1210,7 @@ const EnhancedGameScene: FC = () => {
               </div>
             </div>
 
+
             <Separator />
 
             {/* Enhanced Statistics */}
