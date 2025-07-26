@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { upload } from "../middlewares/multer.js";
-import registerUser from "../controllers/auth/registeruser.controller.js";
-import loginUser from "../controllers/auth/login.controller.js";
-import forgotPasswordEmail from "../controllers/auth/forgotPsaawordEmail.js";
-import verifyOtp from "../controllers/auth/verifyOtp.js";
-import saveNewPassword from "../controllers/auth/saveNewPassword.js";
-import logout from "../controllers/auth/logout.Controller.js";
-import authMiddleWare from "../middlewares/authMiddleWare.js"
+import { upload } from "../middlewares/multer";
+import registerUser from "../controllers/auth/registeruser.controller";
+import loginUser from "../controllers/auth/login.controller";
+import forgotPasswordEmail from "../controllers/auth/forgotPsaawordEmail";
+import verifyOtp from "../controllers/auth/verifyOtp";
+import saveNewPassword from "../controllers/auth/saveNewPassword";
+import logout from "../controllers/auth/logout.Controller";
+import authMiddleWare from "../middlewares/authMiddleWare"
 const router = Router();
 
 router.route("/signup").post(upload.single("ProfilePicture"), registerUser);

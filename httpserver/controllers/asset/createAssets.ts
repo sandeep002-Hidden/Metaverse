@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import assetService from "../../services/asset.service.js";
-import replaceTokens from "../auth/replaceTokens.js";
+import assetService from "../../services/asset.service";
+import replaceTokens from "../auth/replaceTokens";
 
 interface AuthenticatedRequest extends Request {
   user?: string; // Assuming userId is a string

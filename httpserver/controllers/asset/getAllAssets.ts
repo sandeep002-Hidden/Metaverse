@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import assetService from "../../services/asset.service.js";
+import assetService from "../../services/asset.service";
 
 export default async function getAllAssets(req: Request, res: Response){
     try {

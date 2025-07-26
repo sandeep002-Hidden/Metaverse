@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import replaceTokens from "../auth/replaceTokens.js";
+import replaceTokens from "../auth/replaceTokens";
 
 export default async function find(req: Request, res: Response) {
     try {

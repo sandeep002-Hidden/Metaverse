@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from 'express';
-import { refreshAccessToken } from "../utills/generateToken.js";
+import { refreshAccessToken } from "../utills/generateToken";
 
 interface AuthenticatedRequest extends Request {
   user?: string;

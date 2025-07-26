@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import authService from "../../services/auth.service.js";
+import authService from "../../services/auth.service";
 
 interface RegisterRequest extends Request {
   file?: { path: string };

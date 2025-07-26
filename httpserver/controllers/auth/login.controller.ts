@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import authService from "../../services/auth.js";
-import { generateAccessAndRefreshToken } from "../../utills/generateToken.js";
+import authService from "../../services/auth";
+import { generateAccessAndRefreshToken } from "../../utills/generateToken";
 
 export default async function loginUser(req: Request, res: Response) {
   try {

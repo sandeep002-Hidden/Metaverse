@@ -1,9 +1,9 @@
-import prisma from "../prisma/prisma.js";
+import prisma from "../prisma/prisma";
 import bcrypt from "bcrypt";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
-} from "../utills/Cloudniry.js";
+} from "../utills/Cloudniry";
 
 // Assuming sendEmail exists and has a type definition or can be mocked
 declare function sendEmail(email: string, subject: string): Promise<{ success: boolean; otp: string }>;

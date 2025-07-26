@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import authService from "../../services/auth.service.js";
+import authService from "../../services/auth.service";
 
 export default async function verifyOtp(req: Request, res: Response) {
   try {

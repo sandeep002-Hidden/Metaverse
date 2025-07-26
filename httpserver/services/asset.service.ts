@@ -1,4 +1,4 @@
-import prisma from "../prisma/prisma.js";
+import prisma from "../prisma/prisma";
 
 class AssetService {
   async createAsset(shapeName: string, shapeStatus: string, properties: string, shapeCategory: string, userId: string): Promise<any> {

@@ -1,12 +1,12 @@
 import {Router} from "express"
-import createAsset from "../controllers/asset/createAssets.js"
-import getUserAssets from "../controllers/asset/getUserAssets.js"
-import getAssetById from "../controllers/asset/getAssetById.js"
-import updateAsset from "../controllers/asset/updateAsset.js"
-import deleteAsset from "../controllers/asset/deleteAsset.js"
-import getAssetByCategory from "../controllers/asset/getAssetByCategory.js"
-import getAllAssets from "../controllers/asset/getAllAssets.js"
-import authMiddleWare from "../middlewares/authMiddleWare.js"
+import createAsset from "../controllers/asset/createAssets"
+import getUserAssets from "../controllers/asset/getUserAssets"
+import getAssetById from "../controllers/asset/getAssetById"
+import updateAsset from "../controllers/asset/updateAsset"
+import deleteAsset from "../controllers/asset/deleteAsset"
+import getAssetByCategory from "../controllers/asset/getAssetByCategory"
+import getAllAssets from "../controllers/asset/getAllAssets"
+import authMiddleWare from "../middlewares/authMiddleWare"
 const router = Router();
 
 router.route("/createAssets").post(authMiddleWare,createAsset)
