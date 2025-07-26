@@ -2,11 +2,11 @@ import express from "express";
 import dotenv from "dotenv"
 import cors from "cors"
 import cookieParser from "cookie-parser";
-import AuthRouter from "../route/auth.router"
+import AuthRouter from "./route/auth.router"
 import prisma from "../prisma/prisma";
-import UserRouter from "../route/user.router"
+import UserRouter from "./route/user.router"
 import authMiddleWare from "../middlewares/authMiddleWare"
-import AssetRouter from "../route/asset.router"
+import AssetRouter from "./route/asset.router"
 const app = express();
 
 

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import AssetService from "../../src/services/asset.service";
+import AssetService from "../../services/asset.service";
 import replaceTokens from "../auth/replaceTokens";
 
 interface AuthenticatedRequest extends Request {
