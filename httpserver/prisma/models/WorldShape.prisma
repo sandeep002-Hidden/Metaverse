@@ -1,0 +1,10 @@
+model WorldShape {
+   id      String   @id @default(auto()) @map("_id") @db.ObjectId
+   WorldId String   @db.ObjectId
+   ShapeId String   @db.ObjectId
+   World   Worlds   @relation(fields: [WorldId], references: [id])
+   Shape   Shape    @relation(fields: [ShapeId], references: [id])
+   addedAt DateTime @default(now())
+
+   @@unique([WorldId, ShapeId])
+}

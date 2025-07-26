@@ -1,0 +1,26 @@
+model User {
+   id             String    @id @default(auto()) @map("_id") @db.ObjectId
+   ProfilePicture String?
+   FirstName      String
+   LastName       String
+   Email          String    @unique
+   UserName       String    @unique
+   Password       String
+   RefreshToken   String?
+   Otp            Int?
+   OtpExpire      DateTime?
+   createdAt      DateTime  @default(now())
+   updatedAt      DateTime  @updatedAt
+
+   // Shapes created by the user
+   Shapes Shape[]
+
+   // Worlds created by the user
+   Worlds Worlds[] @relation("WorldsCreator")
+
+   // Recent activity for the user
+   RecentActivity RecentActivity[]
+
+   // Worlds liked by the user
+   LikedWorlds WorldLike[]
+}

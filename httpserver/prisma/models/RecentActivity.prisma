@@ -1,0 +1,10 @@
+model RecentActivity {
+   id         String     @id @default(auto()) @map("_id") @db.ObjectId
+   UserId     String     @db.ObjectId
+   User       User       @relation(fields: [UserId], references: [id])
+   WorldId    String     @db.ObjectId
+   // World      Worlds   @relation(fields: [WorldId], references: [id])
+   actionType ActionType
+   comment    String?
+   createdAt  DateTime   @default(now())
+}

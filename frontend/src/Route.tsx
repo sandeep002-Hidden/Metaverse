@@ -21,7 +21,7 @@ import AssetFabric from "./routes/my/Assets/AssetFabric";
 import CreateMaps from "./routes/my/maps/CreateMaps";
 import MapFabric from "./routes/my/maps/MapFabric";
 import Find from "./routes/Find/Find";
-import Game from "./routes/Game/Game";
+import Game from "./pages/Game";
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <>

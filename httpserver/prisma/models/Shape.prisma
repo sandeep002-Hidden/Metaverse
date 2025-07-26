@@ -1,0 +1,14 @@
+model Shape {
+   id              String           @id @default(auto()) @map("_id") @db.ObjectId
+   ShapeName       String
+   CreatorId       String           @db.ObjectId
+   Creator         User             @relation(fields: [CreatorId], references: [id])
+   AccessSpecifier AccessSpecifier  @default(PUBLIC)
+   Category        String[]
+   Properties      CanvasProperties
+   createdAt       DateTime         @default(now())
+   updatedAt       DateTime         @updatedAt
+
+   // Many-to-many relationship with Worlds
+   WorldShapes WorldShape[]
+}

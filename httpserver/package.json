@@ -5,23 +5,26 @@
   "description": "Opt Server for stellerForge",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "build": "tsc",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "start": "node dist/index.js"
   },
   "author": "Sandeep",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.7.0",
-    "bcrypt": "^5.1.1",
-    "cloudinary": "^2.5.1",
-    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.16",
-    "nodemon": "^3.1.9"
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.x.x",
+    "@types/node": "^20.x.x",
+    "@types/express": "^4.x.x",
+    "@types/bcrypt": "^5.x.x",
+    "@types/jsonwebtoken": "^9.x.x",
+    "@types/cors": "^2.8.x"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

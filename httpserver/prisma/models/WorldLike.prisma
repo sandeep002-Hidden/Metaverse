@@ -1,0 +1,17 @@
+model WorldLike {
+   id String @id @default(auto()) @map("_id") @db.ObjectId
+
+   // User who liked the world
+   UserId String @db.ObjectId
+   User   User   @relation(fields: [UserId], references: [id])
+
+   // World that was liked
+   WorldId String @db.ObjectId
+   World   Worlds @relation(fields: [WorldId], references: [id])
+
+   // Timestamp of like
+   likedAt DateTime @default(now())
+
+   // Ensure unique like per user per world
+   @@unique([UserId, WorldId])
+}
