@@ -2,18 +2,22 @@
   "name": "nexora_webrtc_server",
   "version": "1.0.0",
   "description": "This is the WebRtc server for the Nexora web App for vedio commmunication while playing the game and so on..",
-  "main": "index.js",
-  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "dev": "nodemon dist/index.js",
+    "start": "node dist/index.js"
   },
   "author": "Sandeep Mohapatra",
   "license": "ISC",
   "dependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.1.0",
+    "@types/ws": "^8.18.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "nodemon": "^3.1.10",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "typescript": "^5.8.3",
+    "ws": "^8.18.3"
   }
 }
